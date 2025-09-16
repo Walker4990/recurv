@@ -1,0 +1,13 @@
+package com.syc.recurv.domain.subscription.value;
+
+import java.time.LocalDate;
+import jakarta.persistence.Embeddable;
+import lombok.Getter;
+import lombok.Setter;
+
+@Embeddable
+@Getter @Setter
+public class Period {
+    private LocalDate startDate;
+    private LocalDate endDate;
+}

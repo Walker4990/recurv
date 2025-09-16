@@ -1,0 +1,11 @@
+# backend
+recurv-backend/.gradle
+recurv-backend/build
+
+# frontend
+recurv-frontend/node_modules
+recurv-frontend/build
+
+# 공통
+.DS_Store
+.env*
