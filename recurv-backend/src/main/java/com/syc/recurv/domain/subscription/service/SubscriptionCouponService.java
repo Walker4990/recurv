@@ -1,6 +1,7 @@
 package com.syc.recurv.domain.subscription.service;
 
 import com.syc.recurv.domain.subscription.entity.SubscriptionCoupon;
+import com.syc.recurv.domain.subscription.entity.SubscriptionCouponId;
 import com.syc.recurv.domain.subscription.entity.SubscriptionItem;
 import com.syc.recurv.domain.subscription.repository.SubscriptionCouponRepository;
 import com.syc.recurv.domain.subscription.repository.SubscriptionItemRepository;
@@ -20,9 +21,10 @@ public class SubscriptionCouponService {
         return subscriptionCouponRepository.save(scCoupon);
     }
     // Read
-    public Optional<SubscriptionCoupon> get(Long id){
-        return Optional.ofNullable(subscriptionCouponRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException(("구독 없음"))));
+    public SubscriptionCoupon get(Long subscriptionId, Long couponId) {
+        SubscriptionCouponId pk = new SubscriptionCouponId(subscriptionId, couponId);
+        return subscriptionCouponRepository.findById(pk)
+                .orElseThrow(() -> new RuntimeException("구독 없음"));
     }
     // Update
     public SubscriptionCoupon update(SubscriptionCoupon scCoupon){

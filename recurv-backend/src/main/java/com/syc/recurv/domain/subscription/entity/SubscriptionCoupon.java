@@ -17,7 +17,6 @@ import lombok.Setter;
 @Table(name = "subscription_coupon")
 @Getter @Setter
 @IdClass(SubscriptionCouponId.class)
-
 public class SubscriptionCoupon {
 
 	@Id

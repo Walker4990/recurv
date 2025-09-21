@@ -27,6 +27,7 @@ public class Invoice {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long invoiceId;
     private String invoiceNo;
+    private Long planId;
     private Long partnerNo;
     private LocalDateTime issueDate;
     private LocalDate dueDate;

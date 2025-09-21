@@ -13,22 +13,40 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Table(name = "payment")
-@Getter @Setter
+@Getter @Setter @Builder
+@NoArgsConstructor @AllArgsConstructor
 public class Payment {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long paymentId;
+
+    // FK
+    private Long invoiceId;
     private Long partnerNo;
+    private Long paymentMethodId;
+
+    // PG 관련
+    @Column(name = "payment_key")
+    private String paymentKey;
+
+    @Column(name = "order_id")
+    private String orderId;
+
     private BigDecimal amount;
     private String currency;
     private String status;
+
+    @Column(name = "provider_tx_id")
     private String providerTxId;
+
     private LocalDateTime approvedAt;
     private String failedReason;
+
+    @Column(updatable = false, insertable = false)
     private LocalDateTime createdAt;
 }
