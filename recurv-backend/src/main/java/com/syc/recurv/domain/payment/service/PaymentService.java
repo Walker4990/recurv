@@ -17,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -48,6 +50,14 @@ public class PaymentService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
+    @Cacheable(key = "'partner:' + #partnerNo")
+    public List<Payment> getRecentPayments(Long partnerNo) {
+        log.info("💡 [DB Query 실행됨 - 캐시 MISS]");
+        return paymentRepository.findRecentByPartnerNo(partnerNo);
+    }
+
+
+    @CacheEvict(allEntries = true)
     @Transactional
     public void markPaymentConfirmed(TossWebhookRequest request) {
         String orderId = request.getData().getOrderId();
@@ -67,7 +77,7 @@ public class PaymentService {
                         .build()
                 );
 
-        // ✅ 이미 SUCCESS 처리된 결제는 무시
+        // 이미 SUCCESS 처리된 결제는 무시
         if ("SUCCESS".equals(payment.getStatus())) {
             log.warn("이미 SUCCESS 결제, CONFIRMED 이벤트 무시: {}", orderId);
             return;
@@ -82,7 +92,7 @@ public class PaymentService {
 
         applyPaymentSuccess(invoiceId, payment.getAmount(), payment.getCurrency(), payment.getProviderTxId());
     }
-
+    @CacheEvict(allEntries = true)
     @Transactional
     public void markPaymentFailed(TossWebhookRequest request) {
         String orderId = request.getData().getOrderId();
@@ -112,7 +122,7 @@ public class PaymentService {
         payment.setFailedReason("FAILED");
         paymentRepository.save(payment);
     }
-
+    @CacheEvict(allEntries = true)
     @Transactional
     public void markPaymentCanceledIfActive(TossWebhookRequest request) {
         String orderId = request.getData().getOrderId();
@@ -150,7 +160,7 @@ public class PaymentService {
             }
         });
     }
-
+    @CacheEvict(allEntries = true)
     @Transactional
     public void markPaymentRefunded(TossWebhookRequest request) {
         String orderId = request.getData().getOrderId();
@@ -169,7 +179,7 @@ public class PaymentService {
 
         applyRefund(invoiceId, request.getData().getTotalAmount(), request.getData().getCurrency());
     }
-
+    @CacheEvict(allEntries = true)
     @Transactional
     public void markPaymentExpired(TossWebhookRequest request) {
         String orderId = request.getData().getOrderId();

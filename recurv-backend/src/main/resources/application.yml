@@ -15,6 +15,12 @@ spring:
     username: root
     password: qwer1234
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 200       # 동시 커넥션 100개로 확장 (기존 30 → 100)
+      minimum-idle: 20             #최소 유휴 커넥션 수
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 30000    # Connection 대기시간 30초
 
   jpa:
     hibernate:
@@ -43,7 +49,18 @@ toss:
   webhook:
     secret: test_sk_ma60RZblrqoaLvBo6j2R3wzYWBn1
 
+# 서버 성능 튜닝 (JMeter 3000~4000명 대비)
+server:
+  tomcat:
+    max-threads: 800
+    min-spare-threads: 50
+    accept-count: 1000
+    connection-timeout: 30000
+
+# 로깅 / 트레이스 레벨 (성능 모니터링용)
 logging:
   level:
     org.springframework.cache: TRACE
     org.hibernate.SQL: DEBUG
+    com.zaxxer.hikari: INFO
+    org.springframework.web: WARN

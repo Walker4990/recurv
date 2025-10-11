@@ -8,6 +8,9 @@ import com.syc.recurv.domain.subscription.value.BillingInfo;
 import com.syc.recurv.domain.subscription.value.Period;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -15,7 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-
+@CacheConfig(cacheNames = "invoice:list")
 @Service
 @RequiredArgsConstructor
 public class InvoiceService {
@@ -23,6 +26,7 @@ public class InvoiceService {
     private final SubscriptionRepository subscriptionRepository;
     // InvoiceService.java
     @Transactional
+    @CacheEvict(allEntries = true)
     public Invoice createInvoice(Long partnerNo, Long planId, BigDecimal amount) {
         // 1) partnerNo 로 기존 구독 있는지 확인
         Subscription sub = subscriptionRepository.findByPartnerNo(partnerNo)
@@ -60,20 +64,20 @@ public class InvoiceService {
     }
 
 
-
+    @Cacheable(key = "'invoice:' + #id")
     public Invoice get(Long id) {
         return invoiceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("인보이스 없음"));
     }
-
+    @Cacheable(key = "'invoice:' + #id")
     public List<Invoice> getAll() {
         return invoiceRepository.findAll();
     }
-
+    @CacheEvict(allEntries = true)
     public Invoice update(Invoice invoice) {
         return invoiceRepository.save(invoice);
     }
-
+    @CacheEvict(allEntries = true)
     public void delete(Long id) {
         invoiceRepository.deleteById(id);
     }

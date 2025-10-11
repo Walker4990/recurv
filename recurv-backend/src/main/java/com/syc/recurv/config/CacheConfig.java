@@ -31,32 +31,34 @@ public class CacheConfig {
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-        // ✅ 공통 직렬화 설정
+        // ✅ 공통 직렬화 설정 + 기본 TTL 5분
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
                         new GenericJackson2JsonRedisSerializer(objectMapper)))
-                .disableCachingNullValues();
+                .disableCachingNullValues()
+                .entryTtl(Duration.ofMinutes(5)); // 기본 TTL 5분
 
-        // TTL별 캐시 정책
+        // ✅ 캐시별 세부 TTL 설정
         Map<String, RedisCacheConfiguration> cacheConfigs = new HashMap<>();
 
-        //  파트너 목록 (1분)
-        cacheConfigs.put("partners:all", defaultConfig.entryTtl(Duration.ofSeconds(60)));
+        // 🧩 파트너 목록 (변동 적음 → 3분)
+        cacheConfigs.put("partners:all", defaultConfig.entryTtl(Duration.ofMinutes(3)));
 
-        // 구독 목록 (2분)
-        cacheConfigs.put("subscription:list", defaultConfig.entryTtl(Duration.ofSeconds(120)));
+        // 🧩 구독 목록 (자주 변경 → 2분)
+        cacheConfigs.put("subscription:list", defaultConfig.entryTtl(Duration.ofMinutes(2)));
 
-        // 인보이스 리스트 (5분)
-        cacheConfigs.put("invoice:list", defaultConfig.entryTtl(Duration.ofSeconds(300)));
+        // 🧩 인보이스 목록 (통계성 → 5분)
+        cacheConfigs.put("invoice:list", defaultConfig.entryTtl(Duration.ofMinutes(5)));
 
-        // 결제 요약 (1분)
-        cacheConfigs.put("payment:summary", defaultConfig.entryTtl(Duration.ofSeconds(60)));
+        // 🧩 결제 요약 (통계 갱신 주기 고려 → 10분)
+        cacheConfigs.put("payment:summary", defaultConfig.entryTtl(Duration.ofMinutes(10)));
 
-        // RedisCacheManager 생성
+        // ✅ RedisCacheManager 빌드
         return RedisCacheManager.builder(rcf)
-                .cacheDefaults(defaultConfig.entryTtl(Duration.ofSeconds(60))) // 기본 TTL 60초
+                .cacheDefaults(defaultConfig)
                 .withInitialCacheConfigurations(cacheConfigs)
+                .transactionAware()
                 .build();
     }
 }

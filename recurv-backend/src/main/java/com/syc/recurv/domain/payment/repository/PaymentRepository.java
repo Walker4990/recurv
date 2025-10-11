@@ -21,4 +21,6 @@ public interface PaymentRepository extends JpaRepository<Payment,Long> {
 
     @Query("SELECT p FROM Payment p WHERE p.partnerNo = :partnerNo")
     List<Payment> findByPartnerNo(@Param("partnerNo") Long partnerNo);
+
+    List<Payment> findRecentByPartnerNo(Long partnerNo);
 }

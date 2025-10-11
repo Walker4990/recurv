@@ -11,6 +11,7 @@ import com.syc.recurv.domain.users.repository.UsersRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -29,6 +30,7 @@ public class PaymentWebhookService {
     private final SubscriptionRepository subscriptionRepository;
     private final UsersRepository usersRepository;
 
+    @Async("taskExecutor")
     @Transactional
     public void handleWebhook(TossWebhookRequest request, String rawPayload) {
         if (request == null) {
