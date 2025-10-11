@@ -2,6 +2,14 @@ spring:
   application:
     name: recurv
 
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  cache:
+    type: redis
+
   datasource:
     url: jdbc:mysql://localhost:3306/recurv?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: root
@@ -10,16 +18,32 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update   # 개발 시: create / update / validate / none
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         format_sql: true
         physical_naming_strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+
   mvc:
     pathmatch:
       matching-strategy: ant-path-matcher
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: daegun0193@gmail.com
+    password: omofytlkkuquvvin
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
 toss:
+  secret-key: test_sk_ma60RZblrqoaLvBo6j2R3wzYWBn1
   webhook:
     secret: test_sk_ma60RZblrqoaLvBo6j2R3wzYWBn1
+
+logging:
+  level:
+    org.springframework.cache: TRACE
+    org.hibernate.SQL: DEBUG

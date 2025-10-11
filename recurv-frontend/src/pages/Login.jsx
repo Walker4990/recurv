@@ -10,13 +10,22 @@ function Login() {
         e.preventDefault(); // 새로고침 방지
         console.log(id, password)
         try {
-            const res = await axios.post("http://localhost:8080/api/users/login", {
+            const res = await axios.post("http://localhost:8080/auth/login", {
                 userIdStr: id,
                 password: password,
             });
-            console.log("로그인 성공 : "+ res.data);
-            alert("로그인 성공")
-            window.location.href='/'
+
+            const token = res.data.token;
+            const role = res.data.role;
+            localStorage.setItem("token", token);
+            localStorage.setItem("userId", res.data.userId);
+            localStorage.setItem("role", role);
+            if (role === "ROLE_ADMIN") {
+                window.location.href="/adminHome"
+            } else {
+                window.location.href='/'
+            }
+
         } catch (err)   {
             console.log("로그인 실패 : " + err)
 

@@ -3,16 +3,10 @@ package com.syc.recurv.domain.payment.entity;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.syc.recurv.domain.invoice.entity.Invoice;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
@@ -28,7 +22,10 @@ public class Payment {
     // FK
     private Long invoiceId;
     private Long partnerNo;
-    private Long paymentMethodId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_method_id", referencedColumnName = "paymentMethodId")
+    @JsonIgnore
+    private PaymentMethod paymentMethod;
 
     // PG 관련
     @Column(name = "payment_key")

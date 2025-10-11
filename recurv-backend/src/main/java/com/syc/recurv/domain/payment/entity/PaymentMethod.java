@@ -9,25 +9,45 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
 @Table(name = "payment_method")
 @Getter @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+
 public class PaymentMethod {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long paymentMethodId;
+
+    @Column(nullable = false)
     private Long partnerNo;
-    private String type;
+
+    @Column(nullable = false, length = 20)
+    private String type; // 'CARD','ACCOUNT' 등
+
     private String maskedNo;
     private String provider;
     private String token;
-    private Boolean isDefault;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean isDefault = false; // ✅ null 방지
+
     private LocalDate validUntil;
 
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
+
 }
 

@@ -1,85 +1,119 @@
 package com.syc.recurv.domain.payment.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.syc.recurv.domain.invoice.repository.InvoiceRepository;
+import com.syc.recurv.domain.payment.controller.PaymentSocketController;
 import com.syc.recurv.domain.payment.dto.TossWebhookRequest;
 import com.syc.recurv.domain.payment.entity.WebhookLog;
 import com.syc.recurv.domain.payment.repository.WebhookLogRepository;
+import com.syc.recurv.domain.subscription.repository.SubscriptionRepository;
+import com.syc.recurv.domain.users.repository.UsersRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PaymentWebhookService {
+
     private final PaymentService paymentService;
     private final WebhookLogRepository webhookLogRepository;
+    private final InvoiceRepository invoiceRepository;
+    private final ObjectMapper objectMapper;
+    private final PaymentSocketController socketController;
+    private final SubscriptionRepository subscriptionRepository;
+    private final UsersRepository usersRepository;
 
-    // 결제 후 토스에서 우리 서버로 이벤트를 보냈을 때 실행
     @Transactional
-    public void handleWebhook(TossWebhookRequest request) {
-        // Toss가 보낸 이벤트의 고유 ID
+    public void handleWebhook(TossWebhookRequest request, String rawPayload) {
+        if (request == null) {
+            log.error("❌ Webhook 요청 자체가 null입니다");
+            return;
+        }
+        if (request.getData() == null) {
+            log.error("❌ Webhook data가 null입니다: {}", request);
+            return;
+        }
+        if (request.getData().getOrderId() == null) {
+            log.error("❌ Webhook orderId가 null입니다. data: {}", request.getData());
+            return;
+        }
         String eventId = request.getEventId();
+        String orderId = request.getData() != null ? request.getData().getOrderId() : null;
+        String status = request.getData() != null ? request.getData().getStatus() : "UNKNOWN";
+        BigDecimal totalAmount = request.getData() != null ? request.getData().getTotalAmount() : BigDecimal.ZERO;
+        Long partnerNo = request.getData() != null ? request.getData().getPartnerNo() : null;
+        log.info(">>> Webhook 진입 - orderId={}, status={}, eventId={}", orderId, status, eventId);
 
-        // 같은 eventId가 이미 처리된 적이 있으면 중복 방지 → 바로 return
         if (eventId != null && webhookLogRepository.existsByEventId(eventId)) {
-            return; // 이미 처리된 이벤트는 무시
+            log.warn("중복 Webhook 이벤트 무시: {}", eventId);
+            return;
         }
 
-        // 새 웹훅 로그 객체 생성 (DB에 기록하기 위함)
-        WebhookLog log = WebhookLog.builder()
-                // eventId가 없으면 orderId:status 조합으로 대신 저장
-                .eventId(eventId == null ? request.getOrderId() + ":" + request.getStatus() : eventId)
-                .status(request.getStatus()) // 현재 이벤트 상태 (DONE, FAILED, CANCELED, REFUNDED)
-                .payload(null) // 원본 payload 저장할 수도 있음 (여기선 null)
-                .receivedAt(LocalDateTime.now()) // 이벤트 수신 시각
+        WebhookLog logEntity = WebhookLog.builder()
+                .eventId(eventId != null ? eventId : (orderId + ":" + status))
+                .status(status)
+                .payload(rawPayload)
+                .receivedAt(LocalDateTime.now())
+                .status("RECEIVED")
                 .build();
-
-        // DB에 로그 저장
-        webhookLogRepository.save(log);
+        webhookLogRepository.save(logEntity);
 
         try {
-            // 이벤트 상태별로 분기 처리
-            switch (request.getStatus()) {
-                case "DONE":
-                    // 결제가 정상 완료된 경우 → 결제 성공 처리
-                    paymentService.applyPaymentSuccess(
-                            request.getOrderId(),       // 주문 ID
-                            request.getAmount(),        // 금액
-                            request.getCurrency(),      // 통화 단위
-                            request.getTransactionId() // 결제 트랜잭션 ID
-                    );
-                    break;
-                case "FAILED":
-                case "CANCELED":
-                    // 결제 실패 또는 취소된 경우 → 실패 처리
-                    paymentService.applyFailure(request.getOrderId(), request.getStatus());
-                    break;
-                case "REFUNDED":
-                    // 결제가 환불된 경우 → 환불 처리
-                    paymentService.applyRefund(
-                            request.getOrderId(),
-                            request.getAmount(),
-                            request.getCurrency(),
-                            request.getTransactionId()
-                    );
-                    break;
-                default:
-                    // 정의되지 않은 상태는 무시
+
+            switch (status) {
+                case "DONE", "APPROVED", "CONFIRMED", "SUCCESS" -> {
+                    log.info("✅ 결제 성공 이벤트 수신 - orderId={}, status={}", orderId, status);
+                    paymentService.markPaymentConfirmed(request);
+
+                    // 신규 구독 / 신규 거래처 여부 판별 (추정)
+                    boolean isNewSubscription = (partnerNo != null && !subscriptionRepository.existsByPartnerNo(partnerNo));
+                    boolean isNewPartner = (partnerNo != null && !usersRepository.existsById(partnerNo));
+
+
+                    // ✅ 성공 WebSocket 알림 전송
+                    socketController.notifyPaymentEvent(orderId, totalAmount, status, isNewSubscription, isNewPartner);
+                }
+                case "FAILED" -> {
+                    log.info("❌ 결제 실패 이벤트 수신 - orderId={}", orderId);
+                    paymentService.markPaymentFailed(request);
+                    socketController.notifyPaymentEvent(orderId, totalAmount, "FAILED", false, false);
+                }
+                case "CANCELED" -> {
+                    log.info("⚠️ 결제 취소 이벤트 수신 - orderId={}", orderId);
+                    paymentService.markPaymentCanceledIfActive(request);
+                    socketController.notifyPaymentEvent(orderId, totalAmount, "CANCELED", false, false);
+                }
+                case "REFUNDED" -> {
+                    log.info("💸 환불 이벤트 수신 - orderId={}", orderId);
+                    paymentService.markPaymentRefunded(request);
+                    socketController.notifyPaymentEvent(orderId, totalAmount, "REFUNDED", false, false);
+                }
+                case "EXPIRED" -> {
+                    log.info("⌛ 결제 만료 이벤트 수신 - orderId={}", orderId);
+                    paymentService.markPaymentExpired(request);
+                }
+                case "BILLING_KEY_ISSUED", "BILLING_KEY_UPDATED" -> {
+                    log.info("💳 결제수단 변경 이벤트 수신 - customerKey={}", request.getData().getCustomerKey());
+                    paymentService.changePaymentMethod(request);
+                }
+                default -> log.warn("❓ 처리하지 않는 상태 수신: {}", status);
             }
 
-            // 정상적으로 처리된 경우 처리 완료 시각 기록
-            log.setProcessedAt(LocalDateTime.now());
-            webhookLogRepository.save(log);
+            logEntity.setProcessedAt(LocalDateTime.now());
+            webhookLogRepository.save(logEntity);
 
         } catch (Exception e) {
-            // 처리 중 오류 발생 시 로그에 에러 메시지 기록
-            log.setError(e.getMessage());
-            webhookLogRepository.save(log);
-
-            // 트랜잭션 롤백을 위해 예외 다시 던짐
+            log.error("Webhook 처리 실패 - orderId={}, status={}, error={}",
+                    orderId, status, e.getMessage(), e);
+            logEntity.setError(e.getMessage());
+            webhookLogRepository.save(logEntity);
             throw e;
         }
     }
-
 }

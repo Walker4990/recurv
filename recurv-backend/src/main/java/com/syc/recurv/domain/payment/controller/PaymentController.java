@@ -1,66 +1,82 @@
 package com.syc.recurv.domain.payment.controller;
 
-import com.syc.recurv.domain.payment.dto.TossWebhookRequest;
-import com.syc.recurv.domain.payment.entity.Payment;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.syc.recurv.domain.invoice.entity.Invoice;
+import com.syc.recurv.domain.invoice.repository.InvoiceRepository;
 import com.syc.recurv.domain.payment.service.PaymentService;
 import com.syc.recurv.domain.payment.service.PaymentWebhookService;
+import com.syc.recurv.domain.payment.util.SignatureValidator;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
+
+@Slf4j
 @RestController
 @RequestMapping("/api/payment")
 @RequiredArgsConstructor
 public class PaymentController {
-
-    private final RestTemplate restTemplate = new RestTemplate();
+    @Value("${toss.secret-key}")
+    private String tossSecretKey;
+    private final RestTemplate restTemplate;
+    private final PaymentWebhookService paymentWebhookService;
+    private final SignatureValidator signatureValidator;
+    private final ObjectMapper objectMapper;
+    private final InvoiceRepository invoiceRepository;
     private final PaymentService paymentService;
-    private final PaymentWebhookService paymentwebhookService;
+
+    /**
+     *  클라이언트가 결제 직후 Toss Confirm API를 호출하는 엔드포인트
+     * - Toss API 결과만 프론트에 리턴
+     * - 실제 DB 반영은 Webhook에서만 처리
+     */
     @PostMapping("/confirm")
     public ResponseEntity<?> confirmPayment(@RequestBody Map<String, String> body) {
-        String paymentKey = body.get("paymentKey");
-        String orderId = body.get("orderId");
-        String amount = body.get("amount");
+        try {
+            String paymentKey = body.get("paymentKey");
+            String orderId = body.get("orderId");
+            int amount = Integer.parseInt(body.get("amount"));
 
-        // Toss API 호출
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth("test_sk_ma60RZblrqoaLvBo6j2R3wzYWBn1", ""); // Secret Key
-        headers.setContentType(MediaType.APPLICATION_JSON);
+            // 1. Toss Confirm API 호출
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBasicAuth(tossSecretKey, ""); // ✅ Secret Key는 properties에서 주입 권장
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
-        Map<String, Object> req = new HashMap<>();
-        req.put("paymentKey", paymentKey);
-        req.put("orderId", orderId);
-        req.put("amount", amount);
+            Map<String, Object> req = new HashMap<>();
+            req.put("paymentKey", paymentKey);
+            req.put("orderId", orderId);
+            req.put("amount", amount);
 
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(req, headers);
+            ResponseEntity<Map> response = restTemplate.postForEntity(
+                    "https://api.tosspayments.com/v1/payments/confirm",
+                    new HttpEntity<>(req, headers),
+                    Map.class
+            );
 
-        ResponseEntity<Map> response = restTemplate.postForEntity(
-                "https://api.tosspayments.com/v1/payments/confirm",
-                entity,
-                Map.class
-        );
+            Map<String, Object> result = response.getBody();
+            log.info("✅ Toss Confirm API 결과 반환 - orderId={}, result={}", orderId, result);
 
-        Map<String, Object> result = response.getBody();
+            // 2. ✅ DB 반영은 Webhook에서 처리 (여기서는 하지 않음)
+            return ResponseEntity.ok(result);
 
-        paymentService.processPayment(result, 123L, 456L);
-
-        return ResponseEntity.ok(response.getBody());
+        } catch (Exception e) {
+            log.error("❌ confirmPayment 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(e.getMessage());
+        }
     }
-    @PostMapping("/webhook/toss")
-    public ResponseEntity<String> onTossWebhook(@RequestBody TossWebhookRequest request) {
-        paymentwebhookService.handleWebhook(request);
-        return ResponseEntity.ok("ok");
-    }
+    @PostMapping("/mock-confirm")
+    public ResponseEntity<Map<String, Object>> mockConfirm(@RequestBody Map<String, Object> body) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("orderId", body.get("orderId"));
+        result.put("status", "DONE");
+        result.put("amount", body.get("amount"));
+        result.put("message", "Mock confirm success");
 
+        return ResponseEntity.ok(result);
+    }
 }

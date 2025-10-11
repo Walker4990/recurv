@@ -1,0 +1,11 @@
+{
+  "id": 1,
+  "status": "ACTIVE",
+  "plan": "Pro Plan",
+  "startedAt": "2025-09-01",
+  "expiredAt": "2025-10-01",
+  "nextBillingDate": "2025-10-01",
+  "amount": 20000,
+  "currency": "KRW",
+  "paymentMethod": "Toss 카드 ****-1234"
+}

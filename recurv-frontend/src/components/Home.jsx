@@ -26,7 +26,16 @@ function Home() {
                         구독·결제·청구를 한 곳에서 관리하는 올인원 플랫폼
                     </p>
                     <button
-                        onClick={() => navigate("/login")}
+                        onClick={() => {
+                            const token = localStorage.getItem("token");
+                            if (token) {
+                                // 이미 로그인 상태 → 메인이나 구독 페이지로 이동
+                                navigate("/billing");
+                            } else {
+                                // 로그인 안 된 상태 → 로그인 페이지로 이동
+                                navigate("/login");
+                            }
+                            }}
                         style={{
                             background: "#00A651",
                             color: "#fff",

@@ -43,7 +43,7 @@ function Register() {
             detailAddress               // 상세 주소
         };
         try{
-            const res = await axios.post("http://localhost:8080/api/users", data);
+            const res = await axios.post("http://localhost:8080/api/users/register", data);
             alert("회원가입 성공!")
             window.location.href='/';
         } catch (error) {
