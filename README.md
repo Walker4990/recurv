@@ -67,9 +67,8 @@
 ---
 
 # 🔗 4. 패키지 구조 (실제 프로젝트 구조)
-
+```
 /src/main/java/com/recurv
-
 payment/
 subscription/
 invoice/
@@ -78,11 +77,8 @@ support/
 partner/
 common/
 config/
-
-yaml
-코드 복사
-
-각 모듈은 **Controller / Service / Mapper / XML / VO** 동일한 구조로 구성하여 확장성과 유지보수성을 확보했습니다.
+```
+각 모듈은 MVC패턴에 맞춰 **Controller / Service / Mapper / XML / VO** 동일한 구조로 구성하여 확장성과 유지보수성을 확보했습니다.
 
 ---
 
