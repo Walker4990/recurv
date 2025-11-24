@@ -1,7 +1,7 @@
 # 📌 Recurv — 구독 결제 자동화 시스템
 
-정기 결제–구독 관리–인보이스–재무 기록을 **Webhook 기반으로 완전 자동화**한 정기 구독 플랫폼입니다.  
-결제 성공부터 환불까지 **데이터 정합성 보장**을 최우선으로 설계했습니다.
+정기 결제–구독 관리–인보이스–재무 기록을 Webhook 기반으로 자동화한 정기 구독 플랫폼입니다.
+파이널 프로젝트 사전 학습을 위해, 실서비스 수준의 결제/구독/정산 흐름을 직접 구현해 본 토이 프로젝트입니다.
 
 ---
 
@@ -32,7 +32,6 @@
 
 ## 💳 Payment / Webhook
 - Toss Webhook 기반 결제 처리  
-- `data.status` 기반 상태 분기  
 - eventId 저장으로 **중복 Webhook 처리 방지**  
 - 원본 Webhook Payload JSON DB 보관 (감사 추적)
 
@@ -122,7 +121,7 @@ https://github.com/Walker4990/recurv/blob/main/recurv-backend/src/main/java/com/
 → JSON 구조 파악 후 파싱 로직 수정
 
 ### ✔ 중복 Webhook 처리로 이중 결제 발생  
-→ eventId 기반 idempotency 테이블로 중복 즉시 차단
+→ eventId 기반 webhookLog 테이블로 중복 즉시 차단
 
 ### ✔ 결제–구독–인보이스–재무 간 순서 오류  
 → 모든 처리를 단일 트랜잭션 경계로 통합해 정합성 확보
