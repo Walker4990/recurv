@@ -9,7 +9,6 @@
 
 - Toss Webhook 기반 결제 승인 → 구독 활성화 → 인보이스 처리 → 재무 기록 자동화  
 - eventId 기반 **중복 결제 차단 (idempotency)**  
-- 환불/취소 이벤트 자동 반영  
 - 파트너–관리자 간 **실시간 상담(WebSocket)**  
 - Redis 캐시 적용 및 3000명 부하 테스트 안정성 검증  
 - Payment/Subscription/Invoice/Finance 트랜잭션 기반 정합성 확보
@@ -24,7 +23,6 @@
 **Front:** React, Axios  
 **Real-time:** STOMP WebSocket  
 **Test:** JMeter  
-**Infra:** 내장 Tomcat
 
 ---
 
@@ -66,7 +64,7 @@
 
 ---
 
-# 🔗 4. 패키지 구조 (실제 프로젝트 구조)
+# 🔗 4. 패키지 구조
 ```
 /src/main/java/com/recurv
 payment/
@@ -82,7 +80,7 @@ config/
 
 ---
 
-# 🚀 5. 핵심 기술 포인트 (면접에서 강조)
+# 🚀 5. 핵심 기술 포인트
 
 ### 1) Webhook 기반 자동화  
 결제 → 구독 → 인보이스 → 재무까지 전 과정 자동화.
@@ -106,16 +104,14 @@ JMeter 3000명 테스트에서 **0% 에러** 달성.
 
 # 🧩 6. 대표 코드 링크
 
-👉 https://github.com/Walker4990/recurv/tree/main/src/main/java/com/recurv
-
-- PaymentWebhookService  
-- PaymentService  
-- SubscriptionService  
-- InvoiceService  
-- FinanceTransactionService  
-- Support WebSocket  
-
-*(원하면 파일 이름별 하이퍼링크도 세부적으로 넣어줄게.)*
+- PaymentWebhookService
+https://github.com/Walker4990/recurv/blob/main/recurv-backend/src/main/java/com/syc/recurv/domain/payment/service/PaymentWebhookService.java
+- PaymentService
+  https://github.com/Walker4990/recurv/blob/main/recurv-backend/src/main/java/com/syc/recurv/domain/payment/service/PaymentService.java  
+- SubscriptionService
+  https://github.com/Walker4990/recurv/blob/main/recurv-backend/src/main/java/com/syc/recurv/domain/subscription/service/SubscriptionService.java  
+- SupportService
+  https://github.com/Walker4990/recurv/blob/main/recurv-backend/src/main/java/com/syc/recurv/domain/support/controller/SupportChatController.java  
 
 ---
 
