@@ -35,21 +35,6 @@
 - eventId 저장으로 **중복 Webhook 처리 방지**  
 - 원본 Webhook Payload JSON DB 보관 (감사 추적)
 
-## 🔐 Subscription
-- 결제 성공 시 `ACTIVE`로 상태 변경  
-- BillingInfo 기반 다음 결제일 자동 계산  
-- 환불/취소 시 자동 `CANCELED` 처리
-
-## 🧾 Invoice
-- 결제 성공 → `PAID`  
-- 환불 수신 → `REFUNDED`  
-- Payment 및 Subscription과 강하게 연동
-
-## 💰 Finance Transaction
-- 결제 성공 시 수익(INCOME) 자동 기록  
-- 환불 시 지출(OUTCOME) 자동 생성  
-- 대시보드용 기본 재무 데이터 생성
-
 ## 💬 Support Chat (WebSocket)
 - STOMP 기반 실시간 상담  
 - SupportMessage로 unread 관리  
